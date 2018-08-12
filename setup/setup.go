@@ -2,8 +2,9 @@ package setup
 
 import (
 	"bufio"
+	"crypto/ecdsa"
+	"crypto/elliptic"
 	"crypto/rand"
-	"crypto/rsa"
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/json"
@@ -252,9 +253,18 @@ func Setup(listen string, name string, fullname string) (*config.Configuration, 
 	// private key
 	keyfile := path.Join(exPath, "cert/"+conf.ServiceName+"-ca.key")
 	if _, err := os.Stat(keyfile); os.IsNotExist(err) {
-		priv, _ := rsa.GenerateKey(rand.Reader, 2048)
 		keyOut, _ := os.OpenFile(keyfile, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
-		pem.Encode(keyOut, &pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(priv)})
+		// priv, _ := rsa.GenerateKey(rand.Reader, 2048)
+		// pem.Encode(keyOut, &pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(priv)})
+		priv, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+		if err != nil {
+			panic(err)
+		}
+		b, err := x509.MarshalECPrivateKey(priv)
+		if err != nil {
+			panic(err)
+		}
+		pem.Encode(keyOut, &pem.Block{Type: "EC PRIVATE KEY", Bytes: b})
 		keyOut.Close()
 		log.Println("Private key saved at " + keyfile)
 
@@ -271,8 +281,9 @@ func Setup(listen string, name string, fullname string) (*config.Configuration, 
 			NotAfter:              time.Now().AddDate(20, 0, 0),
 			IsCA:                  true,
 			ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth, x509.ExtKeyUsageServerAuth},
-			KeyUsage:              x509.KeyUsageDigitalSignature | x509.KeyUsageCertSign,
+			KeyUsage:              x509.KeyUsageDigitalSignature | x509.KeyUsageCertSign | x509.KeyUsageKeyEncipherment,
 			BasicConstraintsValid: true,
+			SignatureAlgorithm:    x509.ECDSAWithSHA256,
 		}
 		pub := &priv.PublicKey
 		caB, err := x509.CreateCertificate(rand.Reader, ca, ca, pub, priv)

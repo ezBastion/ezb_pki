@@ -2,8 +2,9 @@ package main
 
 import (
 	"bufio"
+	"crypto/ecdsa"
 	"crypto/rand"
-	"crypto/rsa"
+	"crypto/sha1"
 	"crypto/x509"
 	"encoding/binary"
 	"encoding/json"
@@ -58,6 +59,10 @@ func startRootCAServer(serverchan *chan bool) error {
 		cli.NewExitError(err, -1)
 	}
 	log.Println("Root CA loaded.")
+
+	fp := sha1.Sum(caCRT.Raw)
+	log.Printf("fingerprint, %v\n ", fp)
+	// fingerprint := sha256.Sum256(fp.Raw)
 	//      private key
 	caPrivateKeyFile, err := ioutil.ReadFile(path.Join(exPath, "cert/"+configuration.ServiceName+"-ca.key"))
 	if err != nil {
@@ -67,7 +72,8 @@ func startRootCAServer(serverchan *chan bool) error {
 	if pemBlock == nil {
 		cli.NewExitError(err, -1)
 	}
-	caPrivateKey, err := x509.ParsePKCS1PrivateKey(pemBlock.Bytes)
+	// caPrivateKey, err := x509.ParsePKCS1PrivateKey(pemBlock.Bytes)
+	caPrivateKey, err := x509.ParseECPrivateKey(pemBlock.Bytes)
 	if err != nil {
 		cli.NewExitError(err, -1)
 	}
@@ -90,50 +96,13 @@ func startRootCAServer(serverchan *chan bool) error {
 			cli.NewExitError(err, -1)
 			break
 		}
-		// time.Sleep(time.Millisecond * 10)
 		go signconn(conn, caCRT, caPrivateKey)
-		// select {
-		// case _ = <-*serverchan:
-		// 	break
-		// }
 	}
-
 	return nil
-
-	// err = handleCertificateRequest(configuration, caCRT, caPrivateKey)
-	// if err != nil {
-	// 	return cli.NewExitError(err, -1)
-	// }
-
-	// return nil
 }
 
-// func handleCertificateRequest(configuration config.Configuration, rootCert *x509.Certificate, privateKey *rsa.PrivateKey) error {
-
-// 	listener, err := net.Listen("tcp", configuration.Listen)
-// 	if err != nil {
-// 		cli.NewExitError(err, -1)
-// 	}
-// 	log.Println("Listen at ", configuration.Listen)
-// 	defer func() {
-// 		listener.Close()
-// 		fmt.Println("Listener closed")
-// 	}()
-
-// 	for {
-// 		// Get net.TCPConn object
-// 		_, err := listener.Accept()
-// 		// conn, err := listener.Accept()
-// 		if err != nil {
-// 			cli.NewExitError(err, -1)
-// 			break
-// 		}
-
-// 		//go signconn(conn, rootCert, privateKey)
-// 	}
-// 	return nil
-// }
-func signconn(conn net.Conn, rootCert *x509.Certificate, privateKey *rsa.PrivateKey) error {
+func signconn(conn net.Conn, rootCert *x509.Certificate, privateKey *ecdsa.PrivateKey) error {
+	// func signconn(conn net.Conn, rootCert *x509.Certificate, privateKey *rsa.PrivateKey) error {
 	defer conn.Close()
 
 	reader := bufio.NewReader(conn)
@@ -162,23 +131,28 @@ func signconn(conn net.Conn, rootCert *x509.Certificate, privateKey *rsa.Private
 		return err
 	}
 	clientCRTTemplate := &x509.Certificate{
-		SerialNumber:       big.NewInt(2),
-		Signature:          clientCSR.Signature,
-		SignatureAlgorithm: clientCSR.SignatureAlgorithm,
-		PublicKey:          clientCSR.PublicKey,
-		PublicKeyAlgorithm: clientCSR.PublicKeyAlgorithm,
-		Issuer:             rootCert.Subject,
-		Subject:            clientCSR.Subject,
-		NotBefore:          time.Now(),
-		NotAfter:           time.Now().AddDate(10, 0, 0),
-		ExtKeyUsage:        []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth},
-		KeyUsage:           x509.KeyUsageDigitalSignature,
+		SerialNumber:          big.NewInt(2),
+		Signature:             clientCSR.Signature,
+		SignatureAlgorithm:    clientCSR.SignatureAlgorithm,
+		PublicKey:             clientCSR.PublicKey,
+		PublicKeyAlgorithm:    clientCSR.PublicKeyAlgorithm,
+		Issuer:                rootCert.Subject,
+		Subject:               clientCSR.Subject,
+		NotBefore:             time.Now(),
+		NotAfter:              time.Now().AddDate(10, 0, 0),
+		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth, x509.ExtKeyUsageServerAuth},
+		KeyUsage:              x509.KeyUsageDigitalSignature | x509.KeyUsageKeyEncipherment,
+		DNSNames:              clientCSR.DNSNames,
+		BasicConstraintsValid: true,
+		// ExtraExtensions:    clientCSR.ExtraExtensions,
 	}
 	certData, err := x509.CreateCertificate(rand.Reader, clientCRTTemplate, rootCert, clientCSR.PublicKey, privateKey)
 	if err != nil {
 		log.Println(err)
 		return err
 	}
+	// fp, _ := x509.ParseCertificate(certData)
+	// fingerprint := sha1.Sum(fp.Raw)
 	writer := bufio.NewWriter(conn)
 	// The number of bytes that make up the new certificate go first.
 	certHeader := make([]byte, 2)

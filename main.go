@@ -55,10 +55,9 @@ func main() {
 			Name:  "debug",
 			Usage: "Start pki deamon .",
 			Action: func(c *cli.Context) error {
-				setup.CheckConfig(true)
-
-				serverchan := make(chan bool)
-				return startRootCAServer(&serverchan)
+				conf, _ := setup.CheckConfig(true)
+				runService(conf.ServiceName, true)
+				return nil
 			},
 		}, {
 			Name:  "install",
