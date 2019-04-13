@@ -26,7 +26,7 @@ import (
 )
 
 func main() {
-	// const svcName = "ezb_pki"
+
 	isIntSess, err := svc.IsAnInteractiveSession()
 	if err != nil {
 		log.Fatalf("failed to determine if we are running in an interactive session: %v", err)
@@ -40,7 +40,7 @@ func main() {
 	}
 	app := cli.NewApp()
 	app.Name = "ezb_pki"
-	app.Version = "0.1.0"
+	app.Version = "0.1.1"
 	app.Usage = "Manage PKI for ezBastion nodes."
 	app.Commands = []cli.Command{
 		{
@@ -50,15 +50,12 @@ func main() {
 				cli.StringFlag{
 					Name:  "name, n",
 					Usage: "Windows service name.",
-					// Value: "ezb_pki",
 				}, cli.StringFlag{
 					Name:  "fullname, f",
 					Usage: "Windows service full name.",
-					// Value: "ezBastion PKI",
 				}, cli.StringFlag{
 					Name:  "listen, l",
 					Usage: "The TCP address and port to listen to requests on.",
-					// Value: "0.0.0.0:5010",
 				},
 			},
 			Action: func(c *cli.Context) error {

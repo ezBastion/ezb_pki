@@ -33,12 +33,10 @@ type myservice struct{}
 func (m *myservice) Execute(args []string, r <-chan svc.ChangeRequest, changes chan<- svc.Status) (ssec bool, errno uint32) {
 	const cmdsAccepted = svc.AcceptStop | svc.AcceptShutdown
 	changes <- svc.Status{State: svc.StartPending}
-	// fasttick := time.Tick(500 * time.Millisecond)
-	// slowtick := time.Tick(2 * time.Second)
-	// tick := fasttick
+
 	changes <- svc.Status{State: svc.Running, Accepts: cmdsAccepted}
 	serverchan := make(chan bool)
-	// elog.Info(1, "start startRootCAServer")
+
 	go startRootCAServer(&serverchan)
 loop:
 	for {
@@ -48,11 +46,11 @@ loop:
 			case svc.Interrogate:
 				elog.Info(1, "Interrogate")
 				changes <- c.CurrentStatus
-				// Testing deadlock from https://code.google.com/p/winsvc/issues/detail?id=4
+
 				time.Sleep(100 * time.Millisecond)
 				changes <- c.CurrentStatus
 			case svc.Stop, svc.Shutdown:
-				// elog.Info(1, "ask stop")
+
 				close(serverchan)
 				break loop
 			default:

@@ -13,7 +13,6 @@
 //     You should have received a copy of the GNU Affero General Public License
 //     along with ezBastion.  If not, see <https://www.gnu.org/licenses/>.
 
-
 package setup
 
 import (
@@ -257,7 +256,6 @@ func Setup(listen string, name string, fullname string) (*config.Configuration, 
 		}
 	}
 
-	// cert folder
 	if _, err := os.Stat(path.Join(exPath, "cert")); os.IsNotExist(err) {
 		err = os.MkdirAll(path.Join(exPath, "cert"), 0600)
 		if err != nil {
@@ -266,12 +264,10 @@ func Setup(listen string, name string, fullname string) (*config.Configuration, 
 		log.Println("Make cert folder.")
 	}
 
-	// private key
 	keyfile := path.Join(exPath, "cert/"+conf.ServiceName+"-ca.key")
 	if _, err := os.Stat(keyfile); os.IsNotExist(err) {
 		keyOut, _ := os.OpenFile(keyfile, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
-		// priv, _ := rsa.GenerateKey(rand.Reader, 2048)
-		// pem.Encode(keyOut, &pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(priv)})
+
 		priv, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 		if err != nil {
 			panic(err)
@@ -283,8 +279,6 @@ func Setup(listen string, name string, fullname string) (*config.Configuration, 
 		pem.Encode(keyOut, &pem.Block{Type: "EC PRIVATE KEY", Bytes: b})
 		keyOut.Close()
 		log.Println("Private key saved at " + keyfile)
-
-		// ca root
 
 		ca := &x509.Certificate{
 			SerialNumber: big.NewInt(1653),
@@ -306,7 +300,7 @@ func Setup(listen string, name string, fullname string) (*config.Configuration, 
 		if err != nil {
 			return nil, cli.NewExitError(err, -1)
 		}
-		// Public key
+
 		rootCAfile := path.Join(exPath, "cert/"+conf.ServiceName+"-ca.crt")
 		certOut, err := os.Create(rootCAfile)
 		pem.Encode(certOut, &pem.Block{Type: "CERTIFICATE", Bytes: caB})

@@ -47,10 +47,7 @@ func startRootCAServer(serverchan *chan bool) error {
 		log.Println(err)
 		return err
 	}
-	// err := gonfig.GetConf(path.Join(exPath, "config.json"), &configuration)
-	// if err != nil {
-	// 	panic(err)
-	// }
+
 	configFile, err := os.Open(confFile)
 	defer configFile.Close()
 	if err != nil {
@@ -77,8 +74,7 @@ func startRootCAServer(serverchan *chan bool) error {
 
 	fp := sha1.Sum(caCRT.Raw)
 	log.Printf("fingerprint, %v\n ", fp)
-	// fingerprint := sha256.Sum256(fp.Raw)
-	//      private key
+
 	caPrivateKeyFile, err := ioutil.ReadFile(path.Join(exPath, "cert/"+configuration.ServiceName+"-ca.key"))
 	if err != nil {
 		cli.NewExitError(err, -1)
@@ -87,7 +83,7 @@ func startRootCAServer(serverchan *chan bool) error {
 	if pemBlock == nil {
 		cli.NewExitError(err, -1)
 	}
-	// caPrivateKey, err := x509.ParsePKCS1PrivateKey(pemBlock.Bytes)
+
 	caPrivateKey, err := x509.ParseECPrivateKey(pemBlock.Bytes)
 	if err != nil {
 		cli.NewExitError(err, -1)
@@ -105,7 +101,7 @@ func startRootCAServer(serverchan *chan bool) error {
 	}()
 
 	for {
-		// Get net.TCPConn object
+
 		conn, err := listener.Accept()
 		if err != nil {
 			cli.NewExitError(err, -1)
@@ -117,7 +113,7 @@ func startRootCAServer(serverchan *chan bool) error {
 }
 
 func signconn(conn net.Conn, rootCert *x509.Certificate, privateKey *ecdsa.PrivateKey) error {
-	// func signconn(conn net.Conn, rootCert *x509.Certificate, privateKey *rsa.PrivateKey) error {
+
 	defer conn.Close()
 
 	reader := bufio.NewReader(conn)
@@ -129,7 +125,6 @@ func signconn(conn net.Conn, rootCert *x509.Certificate, privateKey *ecdsa.Priva
 	}
 	asn1DataSize := binary.LittleEndian.Uint16(header)
 
-	// Now read that number of bytes and parse the certificate request
 	asn1Data := make([]byte, asn1DataSize)
 	_, err = reader.Read(asn1Data)
 	if err != nil {
@@ -159,17 +154,15 @@ func signconn(conn net.Conn, rootCert *x509.Certificate, privateKey *ecdsa.Priva
 		KeyUsage:              x509.KeyUsageDigitalSignature | x509.KeyUsageKeyEncipherment,
 		DNSNames:              clientCSR.DNSNames,
 		BasicConstraintsValid: true,
-		// ExtraExtensions:    clientCSR.ExtraExtensions,
 	}
 	certData, err := x509.CreateCertificate(rand.Reader, clientCRTTemplate, rootCert, clientCSR.PublicKey, privateKey)
 	if err != nil {
 		log.Println(err)
 		return err
 	}
-	// fp, _ := x509.ParseCertificate(certData)
-	// fingerprint := sha1.Sum(fp.Raw)
+
 	writer := bufio.NewWriter(conn)
-	// The number of bytes that make up the new certificate go first.
+
 	certHeader := make([]byte, 2)
 	binary.LittleEndian.PutUint16(certHeader, uint16(len(certData)))
 	_, err = writer.Write(certHeader)
@@ -177,13 +170,13 @@ func signconn(conn net.Conn, rootCert *x509.Certificate, privateKey *ecdsa.Priva
 		log.Println(err)
 		return err
 	}
-	// Now write the certificate data.
+
 	_, err = writer.Write(certData)
 	if err != nil {
 		log.Println(err)
 		return err
 	}
-	// Now write the size of the root certificate, which will be needed to validate the new certificate
+
 	rootCertHeader := make([]byte, 2)
 	binary.LittleEndian.PutUint16(rootCertHeader, uint16(len(rootCert.Raw)))
 	_, err = writer.Write(rootCertHeader)
@@ -191,13 +184,13 @@ func signconn(conn net.Conn, rootCert *x509.Certificate, privateKey *ecdsa.Priva
 		log.Println(err)
 		return err
 	}
-	// Now write the root certificate data.
+
 	_, err = writer.Write(rootCert.Raw)
 	if err != nil {
 		log.Println(err)
 		return err
 	}
-	// Flush all the data.
+
 	err = writer.Flush()
 	if err != nil {
 		log.Println(err)
