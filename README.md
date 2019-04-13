@@ -43,7 +43,7 @@ Copyright (C) 2018 Renaud DEVERS info@ezbastion.com
 <a href="COPYING"><img src="https://img.shields.io/badge/license-AGPL%20v3-blueviolet.svg?style=for-the-badge&logo=gnu" alt="License"></a></p>
 
 
-Used librairy:
+Used library:
 
 Name      | Copyright | version | url
 ----------|-----------|--------:|----------------------------
