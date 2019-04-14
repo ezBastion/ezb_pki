@@ -25,7 +25,6 @@ import (
 	"encoding/json"
 	"encoding/pem"
 	"errors"
-	"ezb_pki/models/config"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -36,6 +35,8 @@ import (
 	"regexp"
 	"strings"
 	"time"
+
+	"github.com/ezbastion/ezb_pki/models/config"
 
 	"github.com/ShowMax/go-fqdn"
 
@@ -50,27 +51,24 @@ func CheckConfig(isIntSess bool) (*config.Configuration, error) {
 	if _, err := os.Stat(confFile); os.IsNotExist(err) {
 		if isIntSess {
 			return Setup("", "", "")
-		} else {
-			return nil, err
 		}
+		return nil, err
 	}
 	configFile, err := os.Open(confFile)
 	defer configFile.Close()
 	if err != nil {
 		if isIntSess {
 			return Setup("", "", "")
-		} else {
-			return nil, err
 		}
+		return nil, err
 	}
 	jsonParser := json.NewDecoder(configFile)
 	err = jsonParser.Decode(&conf)
 	if err != nil {
 		if isIntSess {
 			return Setup("", "", "")
-		} else {
-			return nil, err
 		}
+		return nil, err
 	}
 	return &conf, nil
 }
@@ -206,7 +204,7 @@ func Setup(listen string, name string, fullname string) (*config.Configuration, 
 				}
 			} else if !rxListen.MatchString(listen) && listen != "" {
 				log.Println("Bad listen format. Exit")
-				return nil, errors.New("Bad listen format.")
+				return nil, errors.New("bad listen format")
 			}
 			rxName := regexp.MustCompile("^[\\w-]+$")
 			if rxName.MatchString(name) && name != conf.ServiceName {
@@ -226,7 +224,7 @@ func Setup(listen string, name string, fullname string) (*config.Configuration, 
 				}
 			} else if !rxName.MatchString(name) && name != "" {
 				log.Println("Bad service name format. Exit")
-				return nil, errors.New("Bad service name format.")
+				return nil, errors.New("bad service name format")
 			}
 			rxFull := regexp.MustCompile("^[\\w -]+$")
 			if rxFull.MatchString(fullname) && fullname != conf.ServiceFullName {
@@ -246,7 +244,7 @@ func Setup(listen string, name string, fullname string) (*config.Configuration, 
 				}
 			} else if !rxFull.MatchString(fullname) && fullname != "" {
 				log.Println("Bad service full name format. Exit")
-				return nil, errors.New("Bad service full name format.")
+				return nil, errors.New("bad service full name format")
 			}
 			if needSave {
 				c, _ := json.Marshal(conf)
@@ -345,8 +343,7 @@ func askForValue(s string, pattern string) string {
 
 		if re.MatchString(response) {
 			return response
-		} else {
-			fmt.Printf("[%s] wrong format, must match (%s)\n", response, pattern)
 		}
+		fmt.Printf("[%s] wrong format, must match (%s)\n", response, pattern)
 	}
 }

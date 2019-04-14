@@ -24,7 +24,6 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"encoding/pem"
-	"ezb_pki/models/config"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -34,6 +33,8 @@ import (
 	"path"
 	"path/filepath"
 	"time"
+
+	"github.com/ezbastion/ezb_pki/models/config"
 
 	"github.com/urfave/cli"
 )
