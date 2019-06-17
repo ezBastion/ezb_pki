@@ -22,11 +22,9 @@ import (
 	"crypto/sha1"
 	"crypto/x509"
 	"encoding/binary"
-	"encoding/json"
 	"encoding/pem"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"math/big"
 	"net"
 	"os"
@@ -34,32 +32,33 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/ezbastion/ezb_pki/models/config"
+	"github.com/ezbastion/ezb_lib/logmanager"
+	"github.com/ezbastion/ezb_pki/models"
+	"github.com/ezbastion/ezb_pki/setup"
+	log "github.com/sirupsen/logrus"
 
 	"github.com/urfave/cli"
+	"gopkg.in/natefinch/lumberjack.v2"
 )
 
-func startRootCAServer(serverchan *chan bool) error {
-	configuration := config.Configuration{}
+var exPath string
+var conf models.Configuration
+
+func init() {
 	ex, _ := os.Executable()
-	exPath := filepath.Dir(ex)
-	confFile := path.Join(exPath, "config.json")
-	if _, err := os.Stat(confFile); os.IsNotExist(err) {
-		log.Println(err)
-		return err
-	}
+	exPath = filepath.Dir(ex)
+	conf, _ = setup.CheckConfig()
+	logmanager.SetLogLevel(conf.LogLevel, exPath)
 
-	configFile, err := os.Open(confFile)
-	defer configFile.Close()
-	if err != nil {
-		log.Println(err)
-		return err
-	}
-	jsonParser := json.NewDecoder(configFile)
-	jsonParser.Decode(&configuration)
-	log.Println(confFile, "loaded.")
-
-	caPublicKeyFile, err := ioutil.ReadFile(path.Join(exPath, "cert/"+configuration.ServiceName+"-ca.crt"))
+	log.SetOutput(&lumberjack.Logger{
+		Filename:   path.Join(exPath, "log/ezb_pki.log"),
+		MaxSize:    1, // megabytes
+		MaxBackups: 3,
+		MaxAge:     28, //days
+	})
+}
+func startRootCAServer(serverchan *chan bool) error {
+	caPublicKeyFile, err := ioutil.ReadFile(path.Join(exPath, "cert/"+conf.ServiceName+"-ca.crt"))
 	if err != nil {
 		cli.NewExitError(err, -1)
 	}
@@ -76,7 +75,7 @@ func startRootCAServer(serverchan *chan bool) error {
 	fp := sha1.Sum(caCRT.Raw)
 	log.Printf("fingerprint, %v\n ", fp)
 
-	caPrivateKeyFile, err := ioutil.ReadFile(path.Join(exPath, "cert/"+configuration.ServiceName+"-ca.key"))
+	caPrivateKeyFile, err := ioutil.ReadFile(path.Join(exPath, "cert/"+conf.ServiceName+"-ca.key"))
 	if err != nil {
 		cli.NewExitError(err, -1)
 	}
@@ -91,11 +90,11 @@ func startRootCAServer(serverchan *chan bool) error {
 	}
 	log.Println("Private key loaded.")
 
-	listener, err := net.Listen("tcp", configuration.Listen)
+	listener, err := net.Listen("tcp", conf.Listen)
 	if err != nil {
 		cli.NewExitError(err, -1)
 	}
-	log.Println("Listen at ", configuration.Listen)
+	log.Println("Listen at ", conf.Listen)
 	defer func() {
 		listener.Close()
 		fmt.Println("Listener closed")
@@ -114,7 +113,6 @@ func startRootCAServer(serverchan *chan bool) error {
 }
 
 func signconn(conn net.Conn, rootCert *x509.Certificate, privateKey *ecdsa.PrivateKey) error {
-
 	defer conn.Close()
 
 	reader := bufio.NewReader(conn)

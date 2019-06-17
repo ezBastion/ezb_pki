@@ -1,3 +1,5 @@
+//go:generate goversioninfo
+
 // This file is part of ezBastion.
 
 //     ezBastion is free software: you can redistribute it and/or modify
@@ -33,7 +35,7 @@ func main() {
 		log.Fatalf("failed to determine if we are running in an interactive session: %v", err)
 	}
 	if !isIntSess {
-		conf, err := setup.CheckConfig(false)
+		conf, err := setup.CheckConfig()
 		if err == nil {
 			runService(conf.ServiceName, false)
 		}
@@ -41,33 +43,21 @@ func main() {
 	}
 	app := cli.NewApp()
 	app.Name = "ezb_pki"
-	app.Version = "0.1.1"
+	app.Version = "0.1.2"
 	app.Usage = "Manage PKI for ezBastion nodes."
 	app.Commands = []cli.Command{
 		{
 			Name:  "init",
 			Usage: "Genarate config file and root CA certificat.",
-			Flags: []cli.Flag{
-				cli.StringFlag{
-					Name:  "name, n",
-					Usage: "Windows service name.",
-				}, cli.StringFlag{
-					Name:  "fullname, f",
-					Usage: "Windows service full name.",
-				}, cli.StringFlag{
-					Name:  "listen, l",
-					Usage: "The TCP address and port to listen to requests on.",
-				},
-			},
 			Action: func(c *cli.Context) error {
-				_, err := setup.Setup(c.String("listen"), c.String("name"), c.String("fullname"))
+				err := setup.Setup()
 				return err
 			},
 		}, {
 			Name:  "debug",
 			Usage: "Start pki deamon .",
 			Action: func(c *cli.Context) error {
-				conf, _ := setup.CheckConfig(true)
+				conf, _ := setup.CheckConfig()
 				runService(conf.ServiceName, true)
 				return nil
 			},
@@ -75,29 +65,45 @@ func main() {
 			Name:  "install",
 			Usage: "Add pki deamon windows service.",
 			Action: func(c *cli.Context) error {
-				conf, _ := setup.CheckConfig(true)
-				return installService(conf.ServiceName, conf.ServiceFullName)
+				conf, _ := setup.CheckConfig()
+				err = installService(conf.ServiceName, conf.ServiceFullName)
+				if err != nil {
+					log.Fatalf("Install ezb_pki service: %v", err)
+				}
+				return err
 			},
 		}, {
 			Name:  "remove",
 			Usage: "Remove pki deamon windows service.",
 			Action: func(c *cli.Context) error {
-				conf, _ := setup.CheckConfig(true)
-				return removeService(conf.ServiceName)
+				conf, _ := setup.CheckConfig()
+				err = removeService(conf.ServiceName)
+				if err != nil {
+					log.Fatalf("Remove ezb_pki service: %v", err)
+				}
+				return err
 			},
 		}, {
 			Name:  "start",
 			Usage: "Start pki deamon windows service.",
 			Action: func(c *cli.Context) error {
-				conf, _ := setup.CheckConfig(true)
-				return startService(conf.ServiceName)
+				conf, _ := setup.CheckConfig()
+				err = startService(conf.ServiceName)
+				if err != nil {
+					log.Fatalf("start ezb_pki service: %v", err)
+				}
+				return err
 			},
 		}, {
 			Name:  "stop",
 			Usage: "Stop pki deamon windows service.",
 			Action: func(c *cli.Context) error {
-				conf, _ := setup.CheckConfig(true)
-				return controlService(conf.ServiceName, svc.Stop, svc.Stopped)
+				conf, _ := setup.CheckConfig()
+				err = controlService(conf.ServiceName, svc.Stop, svc.Stopped)
+				if err != nil {
+					log.Fatalf("stop ezb_pki service: %v", err)
+				}
+				return err
 			},
 		},
 	}
@@ -120,7 +126,7 @@ func main() {
 																			  
 %s
 INFO:
-		http://www.ezbastion.com		
+		https://www.ezbastion.com		
 		support@ezbastion.com
 		`, cli.AppHelpTemplate)
 

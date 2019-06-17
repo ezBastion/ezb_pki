@@ -16,7 +16,6 @@
 package setup
 
 import (
-	"bufio"
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
@@ -24,7 +23,6 @@ import (
 	"crypto/x509/pkix"
 	"encoding/json"
 	"encoding/pem"
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -32,234 +30,104 @@ import (
 	"os"
 	"path"
 	"path/filepath"
-	"regexp"
-	"strings"
 	"time"
 
-	"github.com/ezbastion/ezb_pki/models/config"
+	"github.com/ezbastion/ezb_lib/setupmanager"
+	"github.com/ezbastion/ezb_pki/models"
 
 	"github.com/ShowMax/go-fqdn"
 
 	"github.com/urfave/cli"
 )
 
-func CheckConfig(isIntSess bool) (*config.Configuration, error) {
-	conf := config.Configuration{}
+var exPath string
+var confFile string
+
+func init() {
 	ex, _ := os.Executable()
-	exPath := filepath.Dir(ex)
-	confFile := path.Join(exPath, "config.json")
-	if _, err := os.Stat(confFile); os.IsNotExist(err) {
-		if isIntSess {
-			return Setup("", "", "")
-		}
-		return nil, err
-	}
-	configFile, err := os.Open(confFile)
-	defer configFile.Close()
-	if err != nil {
-		if isIntSess {
-			return Setup("", "", "")
-		}
-		return nil, err
-	}
-	jsonParser := json.NewDecoder(configFile)
-	err = jsonParser.Decode(&conf)
-	if err != nil {
-		if isIntSess {
-			return Setup("", "", "")
-		}
-		return nil, err
-	}
-	return &conf, nil
+	exPath = filepath.Dir(ex)
+	confFile = path.Join(exPath, "conf/config.json")
 }
 
-func Setup(listen string, name string, fullname string) (*config.Configuration, error) {
-	conf := config.Configuration{}
+// CheckConfig test if config.json match the model
+func CheckConfig() (conf models.Configuration, err error) {
+	err = setupmanager.CheckFolder(exPath)
+	if err != nil {
+		return conf, err
+	}
+	raw, err := ioutil.ReadFile(confFile)
+	if err != nil {
+		return conf, err
+	}
+	err = json.Unmarshal(raw, &conf)
+	if err != nil {
+		return conf, err
+	}
+	return conf, nil
+}
+
+func Setup() error {
 	fqdn := fqdn.Get()
 	hostname, _ := os.Hostname()
-	ex, _ := os.Executable()
-	exPath := filepath.Dir(ex)
-	confFile := path.Join(exPath, "config.json")
-	if _, err := os.Stat(confFile); os.IsNotExist(err) {
-		rxListen := regexp.MustCompile("^[\\.0-9|\\w]*:[0-9]{1,5}$")
-		if rxListen.MatchString(listen) {
-			conf.Listen = listen
-		} else {
-			fmt.Println("\nWhich port do you want to listen to?")
-			fmt.Println("ex: :5010, 0.0.0.0:5100, localhost:7800, name.domain:2000 ...")
-			for {
-				listen = askForValue("listen", "^[\\.0-9|\\w]*:[0-9]{1,5}$")
-				c := askForConfirmation(fmt.Sprintf("Listen on (%s) ok?", listen))
-				if c {
-					conf.Listen = listen
-					break
-				}
-			}
-		}
-		rxName := regexp.MustCompile("^[\\w-]+$")
-		if rxName.MatchString(name) {
-			conf.ServiceName = name
-		} else {
-			fmt.Println("\nWhat is service name?")
-			fmt.Println("ex: ezb_pki, myPKI-p5010, api-pki-uat ...")
-			for {
-				name = askForValue("name", "^[\\w-]+$")
-				c := askForConfirmation(fmt.Sprintf("Service name (%s) ok?", name))
-				if c {
-					conf.ServiceName = name
-					break
-				}
-			}
-		}
-		rxFull := regexp.MustCompile("^[\\w -]+$")
-		if rxFull.MatchString(fullname) {
-			conf.ServiceFullName = fullname
-		} else {
-			fmt.Println("\nWhat is service full name?")
-			fmt.Println("ex: my pki service, Api PKI for UAT ...")
-			for {
-				fullname = askForValue("full name", "^[\\w -]+$")
-				c := askForConfirmation(fmt.Sprintf("Service full name (%s) ok?", fullname))
-				if c {
-					conf.ServiceFullName = fullname
-					break
-				}
-			}
-		}
-		c, _ := json.Marshal(conf)
-		ioutil.WriteFile(path.Join(exPath, "config.json"), c, 0600)
-		log.Println("config.json saved.")
-	} else {
-		configFile, err := os.Open(confFile)
-		defer configFile.Close()
-		if err != nil {
-			return nil, err
-		}
-		jsonParser := json.NewDecoder(configFile)
-		err = jsonParser.Decode(&conf)
-		if err != nil {
-			log.Println(err)
-			if listen != "" {
-				conf.Listen = listen
-			} else {
-				fmt.Println("Which port do you want to listen to?")
-				fmt.Println("ex: :5010, 0.0.0.:5100, localhost:7800, name.domain:2000 ...")
-				for {
-					listen = askForValue("listen", "^[\\.0-9|\\w]*:[0-9]{1,5}$")
-					c := askForConfirmation(fmt.Sprintf("Listen on (%s) ok?", listen))
-					if c {
-						conf.Listen = listen
-						break
-					}
-				}
-			}
-			if name != "" {
-				conf.ServiceName = name
-			} else {
-				fmt.Println("What is service name?")
-				fmt.Println("ex: ezb_pki, myPKI-p5010, api-pki-uat ...")
-				for {
-					name = askForValue("name", "^[\\w-]*$")
-					c := askForConfirmation(fmt.Sprintf("Service name (%s) ok?", name))
-					if c {
-						conf.ServiceName = name
-						break
-					}
-				}
-			}
-			if fullname != "" {
-				conf.ServiceFullName = fullname
-			} else {
-				fmt.Println("What is service full name?")
-				fmt.Println("ex: my pki service, Api PKI for UAT ...")
-				for {
-					fullname = askForValue("full name", "^[\\w -]*$")
-					c := askForConfirmation(fmt.Sprintf("Service full name (%s) ok?", fullname))
-					if c {
-						conf.ServiceFullName = fullname
-						break
-					}
-				}
-			}
-			c, _ := json.Marshal(conf)
-			ioutil.WriteFile(confFile, c, 0600)
-			log.Println("config.json saved.")
-		} else {
-			needSave := false
-			rxListen := regexp.MustCompile("^[\\.0-9|\\w]*:[0-9]{1,5}$")
-			if rxListen.MatchString(listen) && listen != conf.Listen {
-				conf.Listen = listen
-				needSave = true
-			} else if conf.Listen == "" {
-				fmt.Println("\nWhich port do you want to listen to?")
-				fmt.Println("ex: :5010, 0.0.0.0:5100, localhost:7800, name.domain:2000 ...")
-				for {
-					listen = askForValue("listen", "^[\\.0-9|\\w]*:[0-9]{1,5}$")
-					c := askForConfirmation(fmt.Sprintf("Listen on (%s) ok?", listen))
-					if c {
-						conf.Listen = listen
-						needSave = true
-						break
-					}
-				}
-			} else if !rxListen.MatchString(listen) && listen != "" {
-				log.Println("Bad listen format. Exit")
-				return nil, errors.New("bad listen format")
-			}
-			rxName := regexp.MustCompile("^[\\w-]+$")
-			if rxName.MatchString(name) && name != conf.ServiceName {
-				conf.ServiceName = name
-				needSave = true
-			} else if conf.ServiceName == "" {
-				fmt.Println("\nWhat is service name?")
-				fmt.Println("ex: ezb_pki, myPKI-p5010, api-pki-uat ...")
-				for {
-					name = askForValue("name", "^[\\w-]+$")
-					c := askForConfirmation(fmt.Sprintf("Service name (%s) ok?", name))
-					if c {
-						conf.ServiceName = name
-						needSave = true
-						break
-					}
-				}
-			} else if !rxName.MatchString(name) && name != "" {
-				log.Println("Bad service name format. Exit")
-				return nil, errors.New("bad service name format")
-			}
-			rxFull := regexp.MustCompile("^[\\w -]+$")
-			if rxFull.MatchString(fullname) && fullname != conf.ServiceFullName {
-				conf.ServiceFullName = fullname
-				needSave = true
-			} else if conf.ServiceFullName == "" {
-				fmt.Println("\nWhat is service full name?")
-				fmt.Println("ex: my pki service, Api PKI for UAT ...")
-				for {
-					fullname = askForValue("full name", "^[\\w -]+$")
-					c := askForConfirmation(fmt.Sprintf("Service full name (%s) ok?", fullname))
-					if c {
-						conf.ServiceFullName = fullname
-						needSave = true
-						break
-					}
-				}
-			} else if !rxFull.MatchString(fullname) && fullname != "" {
-				log.Println("Bad service full name format. Exit")
-				return nil, errors.New("bad service full name format")
-			}
-			if needSave {
-				c, _ := json.Marshal(conf)
-				ioutil.WriteFile(path.Join(exPath, "config.json"), c, 0600)
-				log.Println("config.json updated.")
-			}
-		}
-	}
+	quiet := true
 
-	if _, err := os.Stat(path.Join(exPath, "cert")); os.IsNotExist(err) {
-		err = os.MkdirAll(path.Join(exPath, "cert"), 0600)
-		if err != nil {
-			return nil, cli.NewExitError(err, -1)
+	conf, err := CheckConfig()
+	if err != nil {
+		quiet = false
+		conf.Listen = "0.0.0.0:5010"
+		conf.ServiceName = "ezb_pki"
+		conf.ServiceFullName = "ezBastion PKI"
+		conf.LogLevel = "warning"
+	}
+	if quiet == false {
+		fmt.Println("\nWhich port do you want to listen to?")
+		fmt.Println("ex: :5010, 0.0.0.0:5100, localhost:7800, name.domain:2000 ...")
+		for {
+			listen := setupmanager.AskForValue("listen", "^[\\.0-9|\\w]*:[0-9]{1,5}$")
+			c := setupmanager.AskForConfirmation(fmt.Sprintf("Listen on (%s) ok?", listen))
+			if c {
+				conf.Listen = listen
+				break
+			}
 		}
-		log.Println("Make cert folder.")
+
+		fmt.Println("\nWhat is service name?")
+		fmt.Println("ex: ezb_pki, myPKI-p5010, api-pki-uat ...")
+		for {
+			name := setupmanager.AskForValue("name", "^[\\w-]+$")
+			c := setupmanager.AskForConfirmation(fmt.Sprintf("Service name (%s) ok?", name))
+			if c {
+				conf.ServiceName = name
+				break
+			}
+		}
+
+		fmt.Println("\nWhat is service full name?")
+		fmt.Println("ex: my pki service, Api PKI for UAT ...")
+		for {
+			fullname := setupmanager.AskForValue("full name", "^[\\w -]+$")
+			c := setupmanager.AskForConfirmation(fmt.Sprintf("Service full name (%s) ok?", fullname))
+			if c {
+				conf.ServiceFullName = fullname
+				break
+			}
+		}
+
+		fmt.Println("\nWhat is the log level?")
+		fmt.Println("choose: debug|info|warning|error|critical")
+		for {
+			loglevel := setupmanager.AskForValue("Log level", "^debug|info|warning|error|critical$")
+			c := setupmanager.AskForConfirmation(fmt.Sprintf("Lof level (%s) ok?", loglevel))
+			if c {
+				conf.LogLevel = loglevel
+				break
+			}
+		}
+
+		c, _ := json.Marshal(conf)
+		ioutil.WriteFile(confFile, c, 0600)
+		log.Println(confFile, " saved.")
+
 	}
 
 	keyfile := path.Join(exPath, "cert/"+conf.ServiceName+"-ca.key")
@@ -296,7 +164,7 @@ func Setup(listen string, name string, fullname string) (*config.Configuration, 
 		pub := &priv.PublicKey
 		caB, err := x509.CreateCertificate(rand.Reader, ca, ca, pub, priv)
 		if err != nil {
-			return nil, cli.NewExitError(err, -1)
+			return cli.NewExitError(err, -1)
 		}
 
 		rootCAfile := path.Join(exPath, "cert/"+conf.ServiceName+"-ca.crt")
@@ -305,45 +173,5 @@ func Setup(listen string, name string, fullname string) (*config.Configuration, 
 		certOut.Close()
 		log.Println("Root certificat saved at ", rootCAfile)
 	}
-	return nil, nil
-}
-
-func askForConfirmation(s string) bool {
-	reader := bufio.NewReader(os.Stdin)
-
-	for {
-		fmt.Printf("\n%s [y/n]: ", s)
-
-		response, err := reader.ReadString('\n')
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		response = strings.ToLower(strings.TrimSpace(response))
-
-		if response == "y" || response == "yes" {
-			return true
-		} else if response == "n" || response == "no" {
-			return false
-		}
-	}
-}
-func askForValue(s string, pattern string) string {
-	reader := bufio.NewReader(os.Stdin)
-	re := regexp.MustCompile(pattern)
-	for {
-		fmt.Printf("%s: ", s)
-
-		response, err := reader.ReadString('\n')
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		response = strings.TrimSpace(response)
-
-		if re.MatchString(response) {
-			return response
-		}
-		fmt.Printf("[%s] wrong format, must match (%s)\n", response, pattern)
-	}
+	return nil
 }

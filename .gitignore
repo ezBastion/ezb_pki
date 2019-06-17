@@ -3,3 +3,5 @@
 *.crt
 *.json
 *.log
+*.zip
+*.syso

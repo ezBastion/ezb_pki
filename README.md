@@ -54,4 +54,4 @@ logrus    | MIT       | 1.0.4   | github.com/sirupsen/logrus
 go-fqdn   | Apache v2 | 0       | github.com/ShowMax/go-fqdn
 jwt-go    | MIT       | 3.2.0   | github.com/dgrijalva/jwt-go
 gopsutil  | BSD       | 2.15.01 | github.com/shirou/gopsutil
-
+lumberjack| MIT       | 2.1     | github.com/natefinch/lumberjack

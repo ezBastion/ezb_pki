@@ -13,10 +13,11 @@
 //     You should have received a copy of the GNU Affero General Public License
 //     along with ezBastion.  If not, see <https://www.gnu.org/licenses/>.
 
-package config
+package models
 
 type Configuration struct {
 	Listen          string `json:"listen"`
 	ServiceName     string `json:"servicename"`
 	ServiceFullName string `json:"servicefullname"`
+	LogLevel        string `json:"loglevel"`
 }
