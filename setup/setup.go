@@ -51,10 +51,7 @@ func init() {
 
 // CheckConfig test if config.json match the model
 func CheckConfig() (conf models.Configuration, err error) {
-	err = setupmanager.CheckFolder(exPath)
-	if err != nil {
-		return conf, err
-	}
+
 	raw, err := ioutil.ReadFile(confFile)
 	if err != nil {
 		return conf, err
@@ -70,7 +67,10 @@ func Setup() error {
 	fqdn := fqdn.Get()
 	hostname, _ := os.Hostname()
 	quiet := true
-
+	err := setupmanager.CheckFolder(exPath)
+	if err != nil {
+		return err
+	}
 	conf, err := CheckConfig()
 	if err != nil {
 		quiet = false
