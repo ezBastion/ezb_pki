@@ -86,7 +86,7 @@ func Setup() error {
 		fmt.Println("\nWhich port do you want to listen to?")
 		fmt.Println("ex: :5010, 0.0.0.0:5100, localhost:7800, name.domain:2000 ...")
 		for {
-			listen := setupmanager.AskForValue("listen", "^[\\.0-9|\\w]*:[0-9]{1,5}$")
+			listen := setupmanager.AskForValue("listen", conf.Listen, "^[\\.0-9|\\w]*:[0-9]{1,5}$")
 			c := setupmanager.AskForConfirmation(fmt.Sprintf("Listen on (%s) ok?", listen))
 			if c {
 				conf.Listen = listen
@@ -97,7 +97,7 @@ func Setup() error {
 		fmt.Println("\nWhat is service name?")
 		fmt.Println("ex: ezb_pki, myPKI-p5010, api-pki-uat ...")
 		for {
-			name := setupmanager.AskForValue("name", "^[\\w-]+$")
+			name := setupmanager.AskForValue("name", conf.ServiceName, "^[\\w-]+$")
 			c := setupmanager.AskForConfirmation(fmt.Sprintf("Service name (%s) ok?", name))
 			if c {
 				conf.ServiceName = name
@@ -108,7 +108,7 @@ func Setup() error {
 		fmt.Println("\nWhat is service full name?")
 		fmt.Println("ex: my pki service, Api PKI for UAT ...")
 		for {
-			fullname := setupmanager.AskForValue("full name", "^[\\w -]+$")
+			fullname := setupmanager.AskForValue("full name", conf.ServiceFullName, "^[\\w -]+$")
 			c := setupmanager.AskForConfirmation(fmt.Sprintf("Service full name (%s) ok?", fullname))
 			if c {
 				conf.ServiceFullName = fullname

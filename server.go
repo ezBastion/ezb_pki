@@ -48,13 +48,6 @@ func init() {
 	exPath = filepath.Dir(ex)
 	conf, _ = setup.CheckConfig()
 	logmanager.SetLogLevel(conf.Logger.LogLevel, exPath, path.Join(exPath, "log/ezb_pki.log"), conf.Logger.MaxSize, conf.Logger.MaxBackups, conf.Logger.MaxAge)
-
-	// log.SetOutput(&lumberjack.Logger{
-	// 	Filename:   path.Join(exPath, "log/ezb_pki.log"),
-	// 	MaxSize:    1, // megabytes
-	// 	MaxBackups: 3,
-	// 	MaxAge:     28, //days
-	// })
 }
 
 func startRootCAServer(serverchan *chan bool) error {
