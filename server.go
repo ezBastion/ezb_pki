@@ -38,7 +38,6 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	"github.com/urfave/cli"
-	"gopkg.in/natefinch/lumberjack.v2"
 )
 
 var exPath string
@@ -48,15 +47,16 @@ func init() {
 	ex, _ := os.Executable()
 	exPath = filepath.Dir(ex)
 	conf, _ = setup.CheckConfig()
-	logmanager.SetLogLevel(conf.LogLevel, exPath)
+	logmanager.SetLogLevel(conf.Logger.LogLevel, exPath, path.Join(exPath, "log/ezb_pki.log"), conf.Logger.MaxSize, conf.Logger.MaxBackups, conf.Logger.MaxAge)
 
-	log.SetOutput(&lumberjack.Logger{
-		Filename:   path.Join(exPath, "log/ezb_pki.log"),
-		MaxSize:    1, // megabytes
-		MaxBackups: 3,
-		MaxAge:     28, //days
-	})
+	// log.SetOutput(&lumberjack.Logger{
+	// 	Filename:   path.Join(exPath, "log/ezb_pki.log"),
+	// 	MaxSize:    1, // megabytes
+	// 	MaxBackups: 3,
+	// 	MaxAge:     28, //days
+	// })
 }
+
 func startRootCAServer(serverchan *chan bool) error {
 	caPublicKeyFile, err := ioutil.ReadFile(path.Join(exPath, "cert/"+conf.ServiceName+"-ca.crt"))
 	if err != nil {

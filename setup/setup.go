@@ -77,7 +77,10 @@ func Setup() error {
 		conf.Listen = "0.0.0.0:5010"
 		conf.ServiceName = "ezb_pki"
 		conf.ServiceFullName = "ezBastion PKI"
-		conf.LogLevel = "warning"
+		conf.Logger.LogLevel = "warning"
+		conf.Logger.MaxSize = 5
+		conf.Logger.MaxBackups = 10
+		conf.Logger.MaxAge = 180
 	}
 	if quiet == false {
 		fmt.Println("\nWhich port do you want to listen to?")
@@ -109,17 +112,6 @@ func Setup() error {
 			c := setupmanager.AskForConfirmation(fmt.Sprintf("Service full name (%s) ok?", fullname))
 			if c {
 				conf.ServiceFullName = fullname
-				break
-			}
-		}
-
-		fmt.Println("\nWhat is the log level?")
-		fmt.Println("choose: debug|info|warning|error|critical")
-		for {
-			loglevel := setupmanager.AskForValue("Log level", "^debug|info|warning|error|critical$")
-			c := setupmanager.AskForConfirmation(fmt.Sprintf("Lof level (%s) ok?", loglevel))
-			if c {
-				conf.LogLevel = loglevel
 				break
 			}
 		}

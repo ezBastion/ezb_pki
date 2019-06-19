@@ -15,9 +15,11 @@
 
 package models
 
+import "github.com/ezbastion/ezb_lib/confmanager"
+
 type Configuration struct {
-	Listen          string `json:"listen"`
-	ServiceName     string `json:"servicename"`
-	ServiceFullName string `json:"servicefullname"`
-	LogLevel        string `json:"loglevel"`
+	Listen          string             `json:"listen"`
+	ServiceName     string             `json:"servicename"`
+	ServiceFullName string             `json:"servicefullname"`
+	Logger          confmanager.Logger `json:"logger"`
 }

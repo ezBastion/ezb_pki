@@ -15,9 +15,27 @@ The certificates are used to sign JWT too.
 
 ### 3. Run ezb_pki.exe with **init** option.
 
-- name: This is the name used as Windows service and as certificates root name.
-- fullname:The Windows service description.
-- listen: The TCP/IP port used by ezb_pki to respond at nodes request. This port MUST BE reachable by all ezBastion's node.
+```json
+{
+    "listen": ":5010",
+    "servicename": "ezb_pki",
+    "servicefullname": "ezBastion PKI",
+    "logger": {
+        "loglevel": "warning",
+        "maxsize": 5,
+        "maxbackups": 10,
+        "maxage": 180
+    }
+}
+```
+
+- **servicename**: This is the name used as Windows service and as certificates root name.
+- **servicefullname**: The Windows service description.
+- **listen**: The TCP/IP port used by ezb_pki to respond at nodes request. This port MUST BE reachable by all ezBastion's node.
+- **loglevel**: Choose log level in debug,info,warning,error,critical.
+- **maxsize**: is the maximum size in megabytes of the log file before it gets rotated. It defaults to 100 megabytes.
+- **maxbackups**: MaxBackups is the maximum number of old log files to retain.
+- **maxage**: MaxAge is the maximum number of days to retain old log files based on the timestamp encoded in their filename.
 
 
 ### 4. Install Windows service and start it.
