@@ -106,15 +106,6 @@ func main() {
 				return err
 			},
 		},
-		{
-			Name:  "pwd",
-			Usage: "Reset admin password.",
-			Action: func(c *cli.Context) error {
-				// conf, _ := setup.CheckConfig()
-				err := setup.ResetPWD()
-				return err
-			},
-		},
 	}
 
 	cli.AppHelpTemplate = fmt.Sprintf(`

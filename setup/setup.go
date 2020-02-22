@@ -167,8 +167,3 @@ func Setup() error {
 	}
 	return nil
 }
-
-func ResetPWD() error {
-	fmt.Println("Provide new admin password or ctrl+c to quit.")
-	return nil
-}
