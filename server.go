@@ -47,7 +47,7 @@ func init() {
 	ex, _ := os.Executable()
 	exPath = filepath.Dir(ex)
 	conf, _ = setup.CheckConfig()
-	logmanager.SetLogLevel(conf.Logger.LogLevel, exPath, path.Join(exPath, "log/ezb_pki.log"), conf.Logger.MaxSize, conf.Logger.MaxBackups, conf.Logger.MaxAge)
+	logmanager.SetLogLevel(conf.Logger.LogLevel, exPath, path.Join(exPath, "log/ezb_pki.log"), conf.Logger.MaxSize, conf.Logger.MaxBackups, conf.Logger.MaxAge, true, true, true)
 }
 
 func startRootCAServer(serverchan *chan bool) error {
